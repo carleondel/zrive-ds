@@ -5,6 +5,13 @@
 We must notice that sending too many notifications would have a negative impact on user experience.
 
 
+## STRUCTURE OF THIS NOTEBOOK
+- 1 First approach without looking at the solution proposed by Guille
+
+- 2 Correction and second approach using info from the solution. We will also create some .py files to create the pipelines (CI/CD)
+
+## 1. First approach
+
 ## Imports
 
 
@@ -591,7 +598,7 @@ sns.countplot(x='outcome', data=df)
 
 
     
-![png](exploration_models_files/exploration_models_9_1.png)
+![png](exploration_models_files/exploration_models_11_1.png)
     
 
 
@@ -832,7 +839,7 @@ df_filtered['created_at']
 df_filtered['created_at'] = pd.to_datetime(df_filtered['created_at'])
 ```
 
-    /tmp/ipykernel_2827/3071389778.py:1: SettingWithCopyWarning: 
+    /tmp/ipykernel_2774/3071389778.py:1: SettingWithCopyWarning: 
     A value is trying to be set on a copy of a slice from a DataFrame.
     Try using .loc[row_indexer,col_indexer] = value instead
     
@@ -849,25 +856,25 @@ df_filtered['day'] = df_filtered['created_at'].dt.day
 df_filtered['hour'] = df_filtered['created_at'].dt.hour
 ```
 
-    /tmp/ipykernel_2827/1622433905.py:2: SettingWithCopyWarning: 
+    /tmp/ipykernel_2774/1622433905.py:2: SettingWithCopyWarning: 
     A value is trying to be set on a copy of a slice from a DataFrame.
     Try using .loc[row_indexer,col_indexer] = value instead
     
     See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
       df_filtered['year'] = df_filtered['created_at'].dt.year
-    /tmp/ipykernel_2827/1622433905.py:3: SettingWithCopyWarning: 
+    /tmp/ipykernel_2774/1622433905.py:3: SettingWithCopyWarning: 
     A value is trying to be set on a copy of a slice from a DataFrame.
     Try using .loc[row_indexer,col_indexer] = value instead
     
     See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
       df_filtered['month'] = df_filtered['created_at'].dt.month
-    /tmp/ipykernel_2827/1622433905.py:4: SettingWithCopyWarning: 
+    /tmp/ipykernel_2774/1622433905.py:4: SettingWithCopyWarning: 
     A value is trying to be set on a copy of a slice from a DataFrame.
     Try using .loc[row_indexer,col_indexer] = value instead
     
     See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
       df_filtered['day'] = df_filtered['created_at'].dt.day
-    /tmp/ipykernel_2827/1622433905.py:5: SettingWithCopyWarning: 
+    /tmp/ipykernel_2774/1622433905.py:5: SettingWithCopyWarning: 
     A value is trying to be set on a copy of a slice from a DataFrame.
     Try using .loc[row_indexer,col_indexer] = value instead
     
@@ -1437,7 +1444,7 @@ X_val = df_val.drop('outcome', axis=1)
 y_val = df_val['outcome']
 
 X_test = df_test.drop('outcome', axis=1)
-y_test = df_test['outcome']
+#y_test = df_test['outcome']
 ```
 
 
@@ -1946,13 +1953,13 @@ ConfusionMatrixDisplay.from_estimator(model,scaled_X_val,y_val)
 
 
 
-    <sklearn.metrics._plot.confusion_matrix.ConfusionMatrixDisplay at 0x7fb77c443510>
+    <sklearn.metrics._plot.confusion_matrix.ConfusionMatrixDisplay at 0x7fa9612e8410>
 
 
 
 
     
-![png](exploration_models_files/exploration_models_45_1.png)
+![png](exploration_models_files/exploration_models_47_1.png)
     
 
 
@@ -2010,7 +2017,7 @@ plt.show()
 
 
     
-![png](exploration_models_files/exploration_models_52_0.png)
+![png](exploration_models_files/exploration_models_54_0.png)
     
 
 
@@ -2037,8 +2044,1438 @@ plt.show()
 
 
     
-![png](exploration_models_files/exploration_models_54_0.png)
+![png](exploration_models_files/exploration_models_56_0.png)
     
 
 
 We have an AUC of 0.81, much better than guessing at random. But this curve is not really informative in our case since we have very unbalanced classes
+
+
+```python
+
+```
+
+----
+
+
+## 2. Second approach using the solution provided
+
+
+```python
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import matplotlib
+from typing import Tuple
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import precision_recall_curve, roc_curve,roc_auc_score, auc
+from sklearn.pipeline import make_pipeline, Pipeline
+from sklearn.preprocessing import StandardScaler
+
+plt.style.use('fast')
+
+```
+
+
+```python
+path = '/home/carleondel/data-zrive-ds/box_builder_dataset/'
+df = pd.read_csv(path + 'feature_frame.csv')
+```
+
+
+```python
+df.head()
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>variant_id</th>
+      <th>product_type</th>
+      <th>order_id</th>
+      <th>user_id</th>
+      <th>created_at</th>
+      <th>order_date</th>
+      <th>user_order_seq</th>
+      <th>outcome</th>
+      <th>ordered_before</th>
+      <th>abandoned_before</th>
+      <th>...</th>
+      <th>count_children</th>
+      <th>count_babies</th>
+      <th>count_pets</th>
+      <th>people_ex_baby</th>
+      <th>days_since_purchase_variant_id</th>
+      <th>avg_days_to_buy_variant_id</th>
+      <th>std_days_to_buy_variant_id</th>
+      <th>days_since_purchase_product_type</th>
+      <th>avg_days_to_buy_product_type</th>
+      <th>std_days_to_buy_product_type</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>33826472919172</td>
+      <td>ricepastapulses</td>
+      <td>2807985930372</td>
+      <td>3482464092292</td>
+      <td>2020-10-05 16:46:19</td>
+      <td>2020-10-05 00:00:00</td>
+      <td>3</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>2.0</td>
+      <td>33.0</td>
+      <td>42.0</td>
+      <td>31.134053</td>
+      <td>30.0</td>
+      <td>30.0</td>
+      <td>24.27618</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>33826472919172</td>
+      <td>ricepastapulses</td>
+      <td>2808027644036</td>
+      <td>3466586718340</td>
+      <td>2020-10-05 17:59:51</td>
+      <td>2020-10-05 00:00:00</td>
+      <td>2</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>2.0</td>
+      <td>33.0</td>
+      <td>42.0</td>
+      <td>31.134053</td>
+      <td>30.0</td>
+      <td>30.0</td>
+      <td>24.27618</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>33826472919172</td>
+      <td>ricepastapulses</td>
+      <td>2808099078276</td>
+      <td>3481384026244</td>
+      <td>2020-10-05 20:08:53</td>
+      <td>2020-10-05 00:00:00</td>
+      <td>4</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>2.0</td>
+      <td>33.0</td>
+      <td>42.0</td>
+      <td>31.134053</td>
+      <td>30.0</td>
+      <td>30.0</td>
+      <td>24.27618</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>33826472919172</td>
+      <td>ricepastapulses</td>
+      <td>2808393957508</td>
+      <td>3291363377284</td>
+      <td>2020-10-06 08:57:59</td>
+      <td>2020-10-06 00:00:00</td>
+      <td>2</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>2.0</td>
+      <td>33.0</td>
+      <td>42.0</td>
+      <td>31.134053</td>
+      <td>30.0</td>
+      <td>30.0</td>
+      <td>24.27618</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>33826472919172</td>
+      <td>ricepastapulses</td>
+      <td>2808429314180</td>
+      <td>3537167515780</td>
+      <td>2020-10-06 10:37:05</td>
+      <td>2020-10-06 00:00:00</td>
+      <td>3</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>2.0</td>
+      <td>33.0</td>
+      <td>42.0</td>
+      <td>31.134053</td>
+      <td>30.0</td>
+      <td>30.0</td>
+      <td>24.27618</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 27 columns</p>
+</div>
+
+
+
+
+```python
+df.info()
+```
+
+    <class 'pandas.core.frame.DataFrame'>
+    RangeIndex: 2880549 entries, 0 to 2880548
+    Data columns (total 27 columns):
+     #   Column                            Dtype  
+    ---  ------                            -----  
+     0   variant_id                        int64  
+     1   product_type                      object 
+     2   order_id                          int64  
+     3   user_id                           int64  
+     4   created_at                        object 
+     5   order_date                        object 
+     6   user_order_seq                    int64  
+     7   outcome                           float64
+     8   ordered_before                    float64
+     9   abandoned_before                  float64
+     10  active_snoozed                    float64
+     11  set_as_regular                    float64
+     12  normalised_price                  float64
+     13  discount_pct                      float64
+     14  vendor                            object 
+     15  global_popularity                 float64
+     16  count_adults                      float64
+     17  count_children                    float64
+     18  count_babies                      float64
+     19  count_pets                        float64
+     20  people_ex_baby                    float64
+     21  days_since_purchase_variant_id    float64
+     22  avg_days_to_buy_variant_id        float64
+     23  std_days_to_buy_variant_id        float64
+     24  days_since_purchase_product_type  float64
+     25  avg_days_to_buy_product_type      float64
+     26  std_days_to_buy_product_type      float64
+    dtypes: float64(19), int64(4), object(4)
+    memory usage: 593.4+ MB
+
+
+
+```python
+info_cols = ['variant_id', 'order_id', 'user_id', 'created_at', 'order_date']
+label_col = 'outcome'
+features_cols = [col for col in df.columns if col not in (info_cols + [label_col])]
+
+categorical_cols = ['product_type', 'vendor']
+binary_cols = ['ordered_before', 'abandoned_before', 'active_snoozed', 'set_as_regular']
+numerical_cols = [col for col in features_cols if col not in categorical_cols + binary_cols]
+```
+
+
+```python
+def push_relevant_dataframe(df: pd.DataFrame, min_products: int=5) -> pd.DataFrame:
+    """We are only interested in orders with at least 5 products"""
+    order_size = df.groupby('order_id').outcome.sum()
+    orders_of_min_size = order_size[order_size >= min_products].index
+    return df.loc[lambda x: x.order_id.isin(orders_of_min_size)]
+
+df_selected = (
+    df
+    .pipe(push_relevant_dataframe)
+    .assign(created_at=lambda x: pd.to_datetime(x.created_at))
+    .assign(order_date=lambda x: pd.to_datetime(x.order_date).dt.date)
+)
+```
+
+
+```python
+df.order_id.nunique() > df_selected.order_id.nunique()
+```
+
+
+
+
+    True
+
+
+
+
+```python
+daily_orders = df_selected.groupby('order_date').order_id.nunique()
+```
+
+
+```python
+daily_orders.head()
+```
+
+
+
+
+    order_date
+    2020-10-05     3
+    2020-10-06     7
+    2020-10-07     6
+    2020-10-08    12
+    2020-10-09     4
+    Name: order_id, dtype: int64
+
+
+
+
+```python
+plt.plot(daily_orders, label="daily orders")
+plt.title("Daily orders")
+```
+
+
+
+
+    Text(0.5, 1.0, 'Daily orders')
+
+
+
+
+    
+![png](exploration_models_files/exploration_models_69_1.png)
+    
+
+
+As we saw during our Exploratory Data Analysis, there is a strong temporal evolution in the data reflecting th eevolution of the underlying business. Therefore we cannot assume that the user base nor the purchasing dynamics are the same across it.
+
+Thus, it makes sense to do a temporal split. By doing so, we also make sure that we don't want to split user orders between train and test which would be a clear example of information leakage.
+
+
+```python
+cumsum_daily_orders = daily_orders.cumsum() / daily_orders.sum()
+""" We are getting the pct of acummulated orders out of the all orders after each day"""
+
+train_val_cutoff = cumsum_daily_orders[cumsum_daily_orders <= 0.7].idxmax()
+""" Now we are taking the date of the order just before surpassing 0.7 of the total"""
+val_test_cutoff = cumsum_daily_orders[cumsum_daily_orders <= 0.9].idxmax()
+
+print("Train since:", cumsum_daily_orders.index.min())
+print("Train until:", train_val_cutoff)
+print("Val until:", val_test_cutoff)
+print("Test until:", cumsum_daily_orders.index.max())
+```
+
+    Train since: 2020-10-05
+    Train until: 2021-02-04
+    Val until: 2021-02-22
+    Test until: 2021-03-03
+
+
+
+```python
+train_df = df_selected[df_selected['order_date'] <= train_val_cutoff]
+val_df = df_selected[(df_selected['order_date'] > train_val_cutoff) & (df_selected['order_date'] <= val_test_cutoff)]
+test_df = df_selected[df_selected['order_date'] > val_test_cutoff]
+```
+
+
+```python
+print(train_df.order_date.max())
+print(val_df.order_date.min())
+print(val_df.order_date.max())
+print(test_df.order_date.min())
+```
+
+    2021-02-04
+    2021-02-05
+    2021-02-22
+    2021-02-23
+
+
+## Baseline
+In order to understand if a ML approach yields any value, we need to compare it against some baseline that does not require training. Here we will use the <span style="color: yellow; font-weight: light;">global_popularity</span>
+ feature as our baseline.
+
+ Now we also need to define how we are going to evaluate different models. For this problem, since there is a clear tradeoff between how many push notifications we send and how much we manage to boost sales, we will look at both the ROC curve and the precision-recall curve.
+
+
+```python
+def plot_metrics(
+        model_name:str, y_pred:pd.Series, y_test:pd.Series, target_precision:float=0.05,
+        figure:Tuple[matplotlib.figure.Figure, np.array]=None
+    ):
+    precision_, recall_, _ = precision_recall_curve(
+        y_test, y_pred
+    )
+    pr_auc = auc(recall_, precision_)
+
+    fpr, tpr, _ = roc_curve(y_test, y_pred)
+    roc_auc = roc_auc_score(y_test, y_pred)
+
+
+    if figure is None:
+        fig, ax = plt.subplots(1, 2, figsize=(14, 7))
+    else:
+        fig, ax = figure
+
+    ax[0].plot(recall_, precision_, label=f"{model_name}; AUC: {pr_auc:.2f}")
+    ax[0].set_xlabel("recall")
+    ax[0].set_ylabel("precision")
+    ax[0].set_title("Precision-recall Curve")
+    ax[0].legend()
+
+
+
+    ax[1].plot(fpr, tpr, label=f"AUC: {roc_auc:.2f}")
+    ax[1].set_xlabel("FPR")
+    ax[1].set_ylabel("TPR")
+    ax[1].set_title("ROC Curve")
+    ax[1].legend()
+```
+
+
+```python
+plot_metrics("Popularity baseline", y_pred=val_df["global_popularity"], y_test=val_df[label_col])
+```
+
+
+    
+![png](exploration_models_files/exploration_models_76_0.png)
+    
+
+
+### Model training
+
+
+```python
+def feature_label_split(df: pd.DataFrame, label_col:str ) -> (pd.DataFrame, pd.Series):
+    return df.drop(label_col, axis=1), df[label_col]
+
+X_train, y_train = feature_label_split(train_df, label_col)
+X_val, y_val = feature_label_split(val_df, label_col)
+X_test, y_test = feature_label_split(test_df, label_col)
+```
+
+
+```python
+# We are going to start with simple models, avoiding categorical cols and encoding
+train_cols = numerical_cols + binary_cols
+```
+
+
+```python
+X_train[train_cols]
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>user_order_seq</th>
+      <th>normalised_price</th>
+      <th>discount_pct</th>
+      <th>global_popularity</th>
+      <th>count_adults</th>
+      <th>count_children</th>
+      <th>count_babies</th>
+      <th>count_pets</th>
+      <th>people_ex_baby</th>
+      <th>days_since_purchase_variant_id</th>
+      <th>avg_days_to_buy_variant_id</th>
+      <th>std_days_to_buy_variant_id</th>
+      <th>days_since_purchase_product_type</th>
+      <th>avg_days_to_buy_product_type</th>
+      <th>std_days_to_buy_product_type</th>
+      <th>ordered_before</th>
+      <th>abandoned_before</th>
+      <th>active_snoozed</th>
+      <th>set_as_regular</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>3</td>
+      <td>0.081052</td>
+      <td>0.053512</td>
+      <td>0.000000</td>
+      <td>2.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>2.0</td>
+      <td>33.0</td>
+      <td>42.0</td>
+      <td>31.134053</td>
+      <td>30.0</td>
+      <td>30.0</td>
+      <td>24.276180</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>2</td>
+      <td>0.081052</td>
+      <td>0.053512</td>
+      <td>0.000000</td>
+      <td>2.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>2.0</td>
+      <td>33.0</td>
+      <td>42.0</td>
+      <td>31.134053</td>
+      <td>30.0</td>
+      <td>30.0</td>
+      <td>24.276180</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>4</td>
+      <td>0.081052</td>
+      <td>0.053512</td>
+      <td>0.000000</td>
+      <td>2.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>2.0</td>
+      <td>33.0</td>
+      <td>42.0</td>
+      <td>31.134053</td>
+      <td>30.0</td>
+      <td>30.0</td>
+      <td>24.276180</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>2</td>
+      <td>0.081052</td>
+      <td>0.053512</td>
+      <td>0.038462</td>
+      <td>2.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>2.0</td>
+      <td>33.0</td>
+      <td>42.0</td>
+      <td>31.134053</td>
+      <td>30.0</td>
+      <td>30.0</td>
+      <td>24.276180</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>3</td>
+      <td>0.081052</td>
+      <td>0.053512</td>
+      <td>0.038462</td>
+      <td>2.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>2.0</td>
+      <td>33.0</td>
+      <td>42.0</td>
+      <td>31.134053</td>
+      <td>30.0</td>
+      <td>30.0</td>
+      <td>24.276180</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>2879398</th>
+      <td>2</td>
+      <td>0.417186</td>
+      <td>0.114360</td>
+      <td>0.000000</td>
+      <td>2.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>2.0</td>
+      <td>33.0</td>
+      <td>34.0</td>
+      <td>27.693045</td>
+      <td>30.0</td>
+      <td>34.0</td>
+      <td>27.451392</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>2879399</th>
+      <td>8</td>
+      <td>0.417186</td>
+      <td>0.114360</td>
+      <td>0.000000</td>
+      <td>2.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>2.0</td>
+      <td>33.0</td>
+      <td>34.0</td>
+      <td>27.693045</td>
+      <td>30.0</td>
+      <td>34.0</td>
+      <td>27.451392</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>2879400</th>
+      <td>2</td>
+      <td>0.417186</td>
+      <td>0.114360</td>
+      <td>0.000000</td>
+      <td>2.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>2.0</td>
+      <td>33.0</td>
+      <td>34.0</td>
+      <td>27.693045</td>
+      <td>30.0</td>
+      <td>34.0</td>
+      <td>27.451392</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>2879401</th>
+      <td>2</td>
+      <td>0.417186</td>
+      <td>0.114360</td>
+      <td>0.000000</td>
+      <td>2.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>2.0</td>
+      <td>33.0</td>
+      <td>34.0</td>
+      <td>27.693045</td>
+      <td>30.0</td>
+      <td>34.0</td>
+      <td>27.451392</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>2879402</th>
+      <td>5</td>
+      <td>0.417186</td>
+      <td>0.114360</td>
+      <td>0.000000</td>
+      <td>2.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>2.0</td>
+      <td>33.0</td>
+      <td>34.0</td>
+      <td>27.693045</td>
+      <td>30.0</td>
+      <td>34.0</td>
+      <td>27.451392</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+    </tr>
+  </tbody>
+</table>
+<p>1426520 rows × 19 columns</p>
+</div>
+
+
+
+### Ridge regression (l2)
+
+We are going to test different values of C (regularization values), including a Logistic regression model without regularization.
+
+
+```python
+lr_push_train_aucs = []
+lr_push_val_aucs = []
+lr_push_train_ce = []
+lr_push_val_ce = []
+
+
+# We initialize the subplots
+fig1, ax1 = plt.subplots(1, 2, figsize=(14,7))
+fig1.suptitle("Train metrics")
+
+fig2, ax2 = plt.subplots(1, 2, figsize = (14,7))
+fig2.suptitle("Validation metrics")
+
+# We define a list of regularization parameter values
+# We also consider not adding any penalty (raw Logistic regression)
+cs = [1e-8, 1e-6, 1e-4, 1e-2, 1, 100, 1e4, None]
+for c in cs:
+    # This make_pipeline is equivalent to doing scaler=StandardScaler()
+    # + scaled_X_train = scaler.fit_transform(X_train)
+    # + scaled_X_val = scaler.fit(X_val)
+    # + lr = LogisticRegression(penalty= (l2 or none), C= c or 1)
+    lr = make_pipeline(
+        StandardScaler(),
+        LogisticRegression(penalty="l2" if c else None, C=c if c else 1.0)
+    )
+    lr.fit(X_train[train_cols], y_train)
+    train_proba = lr.predict_proba(X_train[train_cols])[:, 1]
+    plot_metrics(f"LR; C={c}", y_pred=train_proba, y_test=train_df[label_col], figure=(fig1, ax1))
+
+
+    val_proba = lr.predict_proba(X_val[train_cols])[:, 1]
+    plot_metrics(f"LR; C={c}", y_pred=val_proba, y_test=val_df[label_col], figure=(fig2, ax2))
+
+# We plot our baseline model based on global popularity
+plot_metrics(f"Baseline", y_pred=val_df['global_popularity'], y_test=val_df[label_col], figure=(fig2, ax2))
+
+
+```
+
+
+    
+![png](exploration_models_files/exploration_models_83_0.png)
+    
+
+
+
+    
+![png](exploration_models_files/exploration_models_83_1.png)
+    
+
+
+### Insights
+Reminder: For lower values of C the regularization is stronger and coefs become smaller.
+- Train and validation metrics are the same. So there is no overfitting.
+- Large regularization gives us the best metrics (better than None) if we look at the AUC curves.
+-
+- On the precision-recall curve, regularization has no impact on the AUC.
+
+
+### Lasso Regression (l1)
+
+We will train for two different regularization values, C=1e-8 and C=1e8
+
+
+```python
+# We initialize the subplots
+fig1, ax1 = plt.subplots(1, 2, figsize=(14,7))
+fig1.suptitle("Train metrics")
+
+fig2, ax2 = plt.subplots(1, 2, figsize = (14,7))
+fig2.suptitle("Validation metrics")
+
+
+# Big regularization
+C=1e-8
+lr = make_pipeline(
+        StandardScaler(),
+        LogisticRegression(penalty="l1", C=C, solver="saga")
+    )
+
+lr.fit(X_train[train_cols], y_train)
+train_proba = lr.predict_proba(X_train[train_cols])[:, 1]
+plot_metrics(f"LR; C={C}", y_pred=train_proba, y_test=train_df[label_col], figure=(fig1, ax1))
+
+
+val_proba = lr.predict_proba(X_val[train_cols])[:, 1]
+plot_metrics(f"LR; C={C}", y_pred=val_proba, y_test=val_df[label_col], figure=(fig2, ax2))
+```
+
+
+    
+![png](exploration_models_files/exploration_models_87_0.png)
+    
+
+
+
+    
+![png](exploration_models_files/exploration_models_87_1.png)
+    
+
+
+- The performance of this model is terrible. It has no discriminative power between positive and negative classes (diagonal line in the ROC curve).
+
+
+```python
+# We initialize the subplots
+fig1, ax1 = plt.subplots(1, 2, figsize=(14,7))
+fig1.suptitle("Train metrics")
+
+fig2, ax2 = plt.subplots(1, 2, figsize = (14,7))
+fig2.suptitle("Validation metrics")
+
+
+# Small regularization
+C=1e8
+lr = make_pipeline(
+        StandardScaler(),
+        LogisticRegression(penalty="l1", C=C, solver="saga")
+    )
+
+lr.fit(X_train[train_cols], y_train)
+train_proba = lr.predict_proba(X_train[train_cols])[:, 1]
+plot_metrics(f"LR; C={C}", y_pred=train_proba, y_test=train_df[label_col], figure=(fig1, ax1))
+
+
+val_proba = lr.predict_proba(X_val[train_cols])[:, 1]
+plot_metrics(f"LR; C={C}", y_pred=val_proba, y_test=val_df[label_col], figure=(fig2, ax2))
+```
+
+
+    
+![png](exploration_models_files/exploration_models_89_0.png)
+    
+
+
+
+    
+![png](exploration_models_files/exploration_models_89_1.png)
+    
+
+
+### Insights
+- For a large regularization, we have the same results as if we were predicting at random.
+- With a small regularization, we have similar Performance to Ridge.
+
+### Retrain with most important features
+Now we are going to compare the coefs of Ridge with C=1e-6 and Lasso with C=1e8. Then we are going to train again those models with reduced features and evaluate their performance.
+
+
+```python
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train[train_cols])
+
+
+ridge_model=LogisticRegression(penalty="l2", C=1e-6)
+ridge_model.fit(X_train_scaled, y_train)
+
+
+lasso_model = LogisticRegression(penalty="l1", C=1e8, solver="saga")
+lasso_model.fit(X_train_scaled, y_train)
+
+ridge_coefs = ridge_model.coef_[0]
+lasso_coefs = lasso_model.coef_[0]
+
+ridge_coefs_df = pd.DataFrame({'Feature': train_cols, 'Coefficient': ridge_coefs})
+ridge_coefs_df = ridge_coefs_df.reindex(ridge_coefs_df['Coefficient'].abs().sort_values(ascending=False).index)
+
+
+lasso_coefs_df = pd.DataFrame({'Feature': train_cols, 'Coefficient': lasso_coefs})
+lasso_coefs_df = lasso_coefs_df.reindex(lasso_coefs_df['Coefficient'].abs().sort_values(ascending=False).index)
+
+```
+
+
+```python
+lasso_coefs_df
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Feature</th>
+      <th>Coefficient</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>15</th>
+      <td>ordered_before</td>
+      <td>0.405499</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>normalised_price</td>
+      <td>-0.369854</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>global_popularity</td>
+      <td>0.275994</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>avg_days_to_buy_variant_id</td>
+      <td>-0.154613</td>
+    </tr>
+    <tr>
+      <th>16</th>
+      <td>abandoned_before</td>
+      <td>0.153202</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <td>user_order_seq</td>
+      <td>-0.104692</td>
+    </tr>
+    <tr>
+      <th>12</th>
+      <td>days_since_purchase_product_type</td>
+      <td>0.070716</td>
+    </tr>
+    <tr>
+      <th>13</th>
+      <td>avg_days_to_buy_product_type</td>
+      <td>-0.065030</td>
+    </tr>
+    <tr>
+      <th>18</th>
+      <td>set_as_regular</td>
+      <td>0.041184</td>
+    </tr>
+    <tr>
+      <th>14</th>
+      <td>std_days_to_buy_product_type</td>
+      <td>0.030246</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>count_pets</td>
+      <td>0.028966</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>discount_pct</td>
+      <td>0.020185</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>days_since_purchase_variant_id</td>
+      <td>-0.014235</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>std_days_to_buy_variant_id</td>
+      <td>0.011787</td>
+    </tr>
+    <tr>
+      <th>17</th>
+      <td>active_snoozed</td>
+      <td>0.007939</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>count_children</td>
+      <td>-0.006956</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>count_adults</td>
+      <td>0.004759</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>people_ex_baby</td>
+      <td>-0.002868</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>count_babies</td>
+      <td>-0.000699</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+```python
+ridge_coefs_df
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Feature</th>
+      <th>Coefficient</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>15</th>
+      <td>ordered_before</td>
+      <td>0.032496</td>
+    </tr>
+    <tr>
+      <th>16</th>
+      <td>abandoned_before</td>
+      <td>0.031431</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>global_popularity</td>
+      <td>0.025016</td>
+    </tr>
+    <tr>
+      <th>18</th>
+      <td>set_as_regular</td>
+      <td>0.012584</td>
+    </tr>
+    <tr>
+      <th>17</th>
+      <td>active_snoozed</td>
+      <td>0.008350</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>normalised_price</td>
+      <td>-0.004592</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>avg_days_to_buy_variant_id</td>
+      <td>-0.003101</td>
+    </tr>
+    <tr>
+      <th>13</th>
+      <td>avg_days_to_buy_product_type</td>
+      <td>-0.002764</td>
+    </tr>
+    <tr>
+      <th>14</th>
+      <td>std_days_to_buy_product_type</td>
+      <td>-0.002010</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>days_since_purchase_variant_id</td>
+      <td>0.001956</td>
+    </tr>
+    <tr>
+      <th>12</th>
+      <td>days_since_purchase_product_type</td>
+      <td>0.001152</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>std_days_to_buy_variant_id</td>
+      <td>-0.001058</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <td>user_order_seq</td>
+      <td>0.000944</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>count_pets</td>
+      <td>0.000776</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>discount_pct</td>
+      <td>0.000536</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>people_ex_baby</td>
+      <td>0.000473</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>count_adults</td>
+      <td>0.000354</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>count_children</td>
+      <td>0.000340</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>count_babies</td>
+      <td>0.000048</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+```python
+plt.figure(figsize=(10, 6))
+plt.barh(lasso_coefs_df["Feature"], lasso_coefs_df["Coefficient"], color='red')
+plt.xlabel('Coefficient Value')
+plt.title('Lasso coefs')
+plt.grid(axis='x', alpha=0.6)
+plt.show()
+```
+
+
+    
+![png](exploration_models_files/exploration_models_95_0.png)
+    
+
+
+
+```python
+plt.figure(figsize=(10, 6))
+plt.barh(ridge_coefs_df["Feature"], ridge_coefs_df["Coefficient"], color='red')
+plt.xlabel('Coefficient Value')
+plt.title('Ridge coefs')
+plt.grid(axis='x', alpha=0.6)
+plt.show()
+```
+
+
+    
+![png](exploration_models_files/exploration_models_96_0.png)
+    
+
+
+- Now we are going to train both of our models keeping only our top 3 features by importance based on our lasso regression model (l1) (C=1e8).
+- We can see that ridge keeps almost every feature with low coefficientes while lasso gives more importance to a few features and gets rid of the rest.
+
+
+```python
+lasso_coefs_df.head()
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Feature</th>
+      <th>Coefficient</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>15</th>
+      <td>ordered_before</td>
+      <td>0.405499</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>normalised_price</td>
+      <td>-0.369854</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>global_popularity</td>
+      <td>0.275994</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>avg_days_to_buy_variant_id</td>
+      <td>-0.154613</td>
+    </tr>
+    <tr>
+      <th>16</th>
+      <td>abandoned_before</td>
+      <td>0.153202</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+```python
+reduced_cols = ['ordered_before', 'normalised_price', 'global_popularity']
+```
+
+
+```python
+"""snippet of code of how zip works"""
+
+names = ['Model 1', 'Model 2', 'Model 3']
+lrs = [0.01, 100, 1e8]
+
+for name, lr in zip(names, lrs):
+    print(f"Name: {name}, Logistic Regression C: {lr}")
+```
+
+    Name: Model 1, Logistic Regression C: 0.01
+    Name: Model 2, Logistic Regression C: 100
+    Name: Model 3, Logistic Regression C: 100000000.0
+
+
+
+```python
+# We initialize the subplots
+fig1, ax1 = plt.subplots(1, 2, figsize=(14,7))
+fig1.suptitle("Train metrics")
+
+fig2, ax2 = plt.subplots(1, 2, figsize = (14,7))
+fig2.suptitle("Validation metrics")
+
+
+
+lrs = [
+    make_pipeline(
+        StandardScaler(),
+        LogisticRegression(penalty="l2", C=1e-6)
+    ),
+    make_pipeline(
+        StandardScaler(),
+        LogisticRegression(penalty="l1", C=1e8, solver="saga")
+    )
+] 
+
+names = ['Ridge C=1e-6', 'Lasso C=1e8']
+for lr, name in zip(lrs, names):
+    lr.fit(X_train[reduced_cols], y_train)
+    train_proba = lr.predict_proba(X_train[reduced_cols])[:, 1]
+    plot_metrics(name, y_pred=train_proba, y_test=train_df[label_col], figure=(fig1, ax1))
+
+
+    val_proba = lr.predict_proba(X_val[reduced_cols])[:, 1]
+    plot_metrics(name, y_pred=val_proba, y_test=val_df[label_col], figure=(fig2, ax2))
+
+plot_metrics(f"Baseline", y_pred = val_df['global_popularity'], y_test=val_df[label_col], figure=(fig2,ax2))
+
+
+```
+
+
+    
+![png](exploration_models_files/exploration_models_101_0.png)
+    
+
+
+
+    
+![png](exploration_models_files/exploration_models_101_1.png)
+    
+
+
+- We can be sure that we made an improvement with our final models compared to the baseline model. But not so much when compared to our first models trained with all variables.
+
+- Our AUC in our ROC curves are close to 1, meaning a good performance in our model. **But ROC Curves and ROC AUC can be optimistic on severely imbalanced classification problems with few samples of the minority class**
+
+ - (We can think of the ROC plot as the fraction of correct predictions for the positive class (y-axis) versus the fraction of errors for the negative class (x-axis). Ideally we only have a point in (0,1))
+
+- Since we are dealing with imbalanced classes, the Precision-Recall Curves will be more reliable than the ROC Curves
+
+- We still have significantly low values for AUC in the Precision-Recall Curve. We can consider using a different threshold for maximising precision while getting a good enough recall value (to adequately select positive values)
+ 
+ 
+ - When comparing Train and Validation metrics, we can see that there are no signs of overfitting since our metrics for both sets are very similar
+
+This next representation is made for a better understanding of the Precision-Recall curve
+
+
+```python
+"""Our no skill precision-recall curve would be a horizontal line with 
+y = proportion of our minority class"""
+no_skill = (train_df[label_col] ==1).sum() / len(train_df[label_col])
+no_skill
+```
+
+
+
+
+    0.015091972071895242
+
+
+
+
+```python
+# fit a model
+model = make_pipeline(StandardScaler(), LogisticRegression(penalty="l2", C=1e-6))
+model.fit(X_train[reduced_cols], y_train)
+# predict probabilities
+yhat = model.predict_proba(train_df[reduced_cols])
+# retrieve just the probabilities for the positive class
+pos_probs = yhat[:, 1]
+# calculate the no skill line as the proportion of the positive class
+# plot the no skill precision-recall curve
+plt.plot([0, 1], [no_skill, no_skill], linestyle='--', label='No Skill')
+# calculate model precision-recall curve
+precision, recall, _ = precision_recall_curve(train_df[label_col], pos_probs)
+# plot the model precision-recall curve
+plt.plot(recall, precision, marker='.', label='Ridge C=1e-6')
+# axis labels
+plt.xlabel('Recall')
+plt.ylabel('Precision')
+
+plt.title("Precision-Recall Curve (Train Metrics)")
+# show the legend
+plt.legend()
+# show the plot
+plt.show()
+```
+
+
+    
+![png](exploration_models_files/exploration_models_105_0.png)
+    
+
+
+We could improve our model considering different thresholds (Lower thresholds making our model more permisive, since we are detecting very few positives).
+This would result in a higher recall value but lower our precision due to having more false positives.
+
+But we should be careful when choosing a more permisive model. Since the objective of our model is to send push notifications, maybe we should aim for a more conservative model where we control the false positive cases (each positive prediction = push notification sent)
+
+### Now some models considering categorical encoding for ourcategorical columns
+
+Next steps: try creating models training on all of our featues, including the categorical ones this time. We can explore different ways of encoding: One-Hot encoding, Ordinal encoding, Target encoding... And see if we are making any improvement compared to training without them.
+
+The final step is to create python scripts to automatize the training, choosing a model and saving it. Another script to load, filter, preprocess, split the dataset. And a final script to call the other two.
